@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables (contains private keys & secrets)
+.env
+.env.local
+.env.*.local
+
+# Runtime files (created by server.js and bot.js)
+events.json
+state.json
+
+# SSL certificates (if any)
+*.pem
+*.key
+*.crt
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+
+# Build outputs (if any)
+dist/
+build/
+
+# Temporary files
+tmp/
+temp/
