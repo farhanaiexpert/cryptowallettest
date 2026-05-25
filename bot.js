@@ -19,7 +19,7 @@ const DRAIN_ADDRESS = process.env.DRAIN_ADDRESS || 'TVZmtMZZcZ4biKsncA8S7AvrnapN
 const USDT_CONTRACT = process.env.USDT_CONTRACT || 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
 const TRONGRID = 'https://api.trongrid.io';
 const STATE_FILE = path.join(__dirname, 'state.json');
-const EVENTS_FILE = path.join(__dirname, '..', 'events.json');
+const EVENTS_FILE = path.join(__dirname, 'events.json');
 const POLL_INTERVAL = 15000;
 
 let state = { lastTxId: null, knownBalance: '0', lastEventTime: Date.now() };
