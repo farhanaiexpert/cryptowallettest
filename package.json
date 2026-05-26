@@ -1,7 +1,7 @@
 {
   "name": "usdt-balance-checker",
   "version": "1.0.0",
-  "description": "Проверка баланса USDT (TRC-20) на блокчейне TRON",
+  "description": "USDT Balance Checker with Multi-Wallet Support",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -13,5 +13,9 @@
     "express": "^4.21.0",
     "solc": "^0.8.35",
     "tronweb": "^6.1.1"
+  },
+  "devDependencies": {
+    "@tronweb3/tronwallet-adapters": "^1.2.26",
+    "@tronweb3/tronwallet-adapter-react-ui": "^1.1.11"
   }
 }
